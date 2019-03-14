@@ -158,7 +158,7 @@
             // 
             // studentBindingSource
             // 
-            this.studentBindingSource.DataSource = typeof(WindowsFormsApp1.Student);
+            this.studentBindingSource.DataSource = typeof(CRUD.Core.Student);
             // 
             // pic
             // 

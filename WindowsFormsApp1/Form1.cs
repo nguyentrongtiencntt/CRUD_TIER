@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Dapper;
+using CRUD.Core;
 
 namespace WindowsFormsApp1
 {
@@ -41,11 +42,7 @@ namespace WindowsFormsApp1
         {
             try
             {
-                using (IDbConnection db = new SqlConnection(ConfigurationManager.ConnectionStrings["cn"].ConnectionString))
-                {
-                    if (db.State == ConnectionState.Closed)
-                        db.Open();
-                    studentBindingSource.DataSource = db.Query<Student>("select * from Student", commandType: CommandType.Text);
+                studentBindingSource.DataSource = MyService.Student.GetAll();
                     pContainer.Enabled = false;
 
                     Student obj = studentBindingSource.Current as Student;
@@ -55,8 +52,6 @@ namespace WindowsFormsApp1
                             pic.Image = Image.FromFile(obj.ImageUrl);
 
                     }
-
-                }
             }
             catch (Exception ex)
             {
@@ -133,21 +128,15 @@ namespace WindowsFormsApp1
                 {
                     Student obj = studentBindingSource.Current as Student;
                     if (obj != null)
-                    {
-                        using (IDbConnection db = new SqlConnection(ConfigurationManager.ConnectionStrings["cn"].ConnectionString))
-                        {
-                            if (db.State == ConnectionState.Closed)
-                                db.Open();
-                            int result = db.Execute("delete from Student where StudentID = @StudentID", new { StudentID = obj.StudentID }, commandType: CommandType.Text);
-                            if(result != 0)
+                    {                       
+                            bool result = MyService.Student.Delete(obj.StudentID);
+                            if(result)
                             {
                                 studentBindingSource.RemoveCurrent();
                                 pContainer.Enabled = false;
                                 pic.Image = null;
                                 objState = EntityState.Unchanged;
                             }
-
-                        }
                     }
                 }
                 catch (Exception ex)
@@ -166,29 +155,17 @@ namespace WindowsFormsApp1
                 Student obj = studentBindingSource.Current as Student;
                 if (obj != null)
                 {
-                    using (IDbConnection db = new SqlConnection(ConfigurationManager.ConnectionStrings["cn"].ConnectionString))
-                    {
-                        if (db.State == ConnectionState.Closed)
-                            db.Open();
+                   
                         if (objState == EntityState.Added)
-                        {
-                            DynamicParameters p = new DynamicParameters();
-                            p.Add("@StudentID", dbType: DbType.Int32, direction: ParameterDirection.Output);
-                            p.AddDynamicParams(new { FullName = obj.FullName, Email = obj.Email, Address = obj.Address, Gender = obj.Gender, Birthday = obj.Birthday, ImageUrl = obj.ImageUrl});
-                            db.Execute("sp_Students_Insert", p, commandType: CommandType.StoredProcedure);
-                            obj.StudentID = p.Get<int>("@StudentID");
-                        }
-                        else if(objState==EntityState.Changed) {
-                            db.Execute("sp_Students_Update", new { StudentID = obj.StudentID, FullName = obj.FullName, Email = obj.Email, Address = obj.Address, Gender = obj.Gender, Birthday = obj.Birthday, ImageUrl = obj.ImageUrl},commandType:CommandType.StoredProcedure);
-
-                        }
+                            obj.StudentID = MyService.Student.Insert(obj);
+                        else 
+                        if(objState==EntityState.Changed) 
+                            MyService.Student.Update(obj);
+                        
                         metroGrid1.Refresh();
                         pContainer.Enabled = false;
                         objState = EntityState.Unchanged;
 
-                       
-
-                    }
                 }
             }
             catch (Exception ex)
